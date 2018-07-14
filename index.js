@@ -52,24 +52,33 @@ const checkActionIntregity = (state, action) => {
   }
 };
 
-const printState = (state) => {
-  switch(state) {
-    case STATE.IDLE: return 'IDLE'
-    case STATE.TOB: return 'TOB'
-    case STATE.PAE: return 'PAE'
-    case STATE.ACTION: return 'ACTION'
+const printState = state => {
+  switch (state) {
+    case STATE.IDLE:
+      return 'IDLE';
+    case STATE.TOB:
+      return 'TOB';
+    case STATE.PAE:
+      return 'PAE';
+    case STATE.ACTION:
+      return 'ACTION';
   }
-}
+};
 
-const printAction = (action) => {
-  switch(action) {
-    case ACTION.TOB: return 'TOB'
-    case ACTION.PAE: return 'PAE'
-    case ACTION.CHARGE: return 'CHARGE'
-    case ACTION.ATTACK: return 'ATTACK'
-    case ACTION.DEFEND: return 'DEFEND'
+const printAction = action => {
+  switch (action) {
+    case ACTION.TOB:
+      return 'TOB';
+    case ACTION.PAE:
+      return 'PAE';
+    case ACTION.CHARGE:
+      return 'CHARGE';
+    case ACTION.ATTACK:
+      return 'ATTACK';
+    case ACTION.DEFEND:
+      return 'DEFEND';
   }
-}
+};
 
 const processAction = (id, action) => {
   // Process player's state
@@ -84,8 +93,7 @@ const processAction = (id, action) => {
       game.player1.state += 1;
       game.player1.lastAction = action;
     }
-  }
-  if (
+  } else if (
     game.player2.id === id &&
     checkActionIntregity(game.player2.state, action)
   ) {
@@ -99,55 +107,74 @@ const processAction = (id, action) => {
   }
 
   // Check actions, if player state is equal and on state 4
-  if (game.player1.state === STATE.ACTION && game.player2.state === STATE.ACTION) {
-    if (game.player1.lastAction === ACTION.CHARGE) game.player1.charge += 1;
-    if (game.player2.lastAction === ACTION.CHARGE) game.player2.charge += 1;
+  if (
+    game.player1.state === STATE.ACTION &&
+    game.player2.state === STATE.ACTION
+  ) {
+    if (game.player1.lastAction === ACTION.CHARGE) {
+      console.log('player1 charge')
+      game.player1.charge += 1;
+    }
+    if (game.player2.lastAction === ACTION.CHARGE) {
+      console.log('player2 charge')
+      game.player2.charge += 1;
+    }
 
     if (game.player1.lastAction === ACTION.ATTACK && game.player1.charge >= 3) {
+      console.log('player1 attack')
       game.player1.charge -= 3;
       if (game.player2.lastAction === ACTION.CHARGE) {
         game.player2.hp -= 1;
       }
-      if (
-        game.player2.lastAction === ACTION.DEFEND &&
-        game.player2.charge >= 1
-      ) {
-        game.player2.charge -= 1;
-      }
     }
     if (game.player2.lastAction === ACTION.ATTACK && game.player2.charge >= 3) {
+      console.log('player2 attack')
       game.player2.charge -= 3;
       if (game.player1.lastAction === ACTION.CHARGE) {
         game.player1.hp -= 1;
       }
-      if (
-        game.player1.lastAction === ACTION.DEFEND &&
-        game.player1.charge >= 1
-      ) {
-        game.player1.charge -= 1;
-      }
     }
+
+    if (game.player1.lastAction === ACTION.DEFEND && game.player1.charge >= 1) {
+      console.log('player1 defend')
+      game.player1.charge -= 1;
+    }
+    if (game.player2.lastAction === ACTION.DEFEND && game.player2.charge >= 1) {
+      console.log('player2 defend')
+      game.player2.charge -= 1;
+    }
+
     // Revert state back to idle
     game.player1.state = STATE.IDLE;
     game.player2.state = STATE.IDLE;
   }
 
-  console.log(`${game.player1.id}: state: ${printState(game.player1.state)} HP: ${game.player1.hp} Charge: ${game.player2.charge}`);
-  console.log(`${game.player2.id}: state: ${printState(game.player2.state)} HP: ${game.player2.hp} Charge: ${game.player2.charge}`);
+  console.log(
+    `${game.player1.id}: state: ${printState(game.player1.state)} HP: ${
+      game.player1.hp
+    } Charge: ${game.player1.charge} lastAction ${game.player1.lastAction}`,
+  );
+  console.log(
+    `${game.player2.id}: state: ${printState(game.player2.state)} HP: ${
+      game.player2.hp
+    } Charge: ${game.player2.charge} lastAction ${game.player2.lastAction}`,
+  );
 
   // TODO:Check Player's HP and update game state
+  if (game.player1.hp <= 0) console.log('Player2 win');
+  if (game.player2.hp <= 0) console.log('Player1 win');
 };
 
 io.on('connection', socket => {
-  console.log('Player connected')
-  if (!game.player1.id){
+  console.log('Player connected');
+  if (!game.player1.id) {
     game.player1.id = socket.id;
   } else {
     game.player2.id = socket.id;
   }
 
   socket.on('action', action => {
-    console.log(`${socket.id}: ${printAction(action)}`)
+    console.log(`${socket.id}: ${printAction(action)}`);
     processAction(socket.id, action);
   });
 });
