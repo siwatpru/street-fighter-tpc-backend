@@ -1,4 +1,5 @@
 const app = require('express')();
+
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const port = process.env.PORT || 5000;
@@ -17,6 +18,9 @@ const ACTION = {
   ATTACK: 3,
   DEFEND: 4,
 };
+
+let room = {
+}
 
 let game = {
   player1: {
@@ -80,85 +84,88 @@ const printAction = action => {
   }
 };
 
-const processAction = (id, action) => {
+const processAction = (roomId, id, action) => {
   // Process player's state
   if (
-    game.player1.id === id &&
-    checkActionIntregity(game.player1.state, action)
+    room[roomId].player1.id === id &&
+    checkActionIntregity(room[roomId].player1.state, action)
   ) {
     if (
-      game.player1.state == game.player2.state ||
-      game.player2.state - game.player1.state === 1
+      room[roomId].player1.state == room[roomId].player2.state ||
+      room[roomId].player2.state - room[roomId].player1.state === 1
     ) {
-      game.player1.state += 1;
-      game.player1.lastAction = action;
+      room[roomId].player1.state += 1;
+      room[roomId].player1.lastAction = action;
     }
   } else if (
-    game.player2.id === id &&
-    checkActionIntregity(game.player2.state, action)
+    room[roomId].player2.id === id &&
+    checkActionIntregity(room[roomId].player2.state, action)
   ) {
     if (
-      game.player2.state == game.player1.state ||
-      game.player1.state - game.player2.state === 1
+      room[roomId].player2.state == room[roomId].player1.state ||
+      room[roomId].player1.state - room[roomId].player2.state === 1
     ) {
-      game.player2.state += 1;
-      game.player2.lastAction = action;
+      room[roomId].player2.state += 1;
+      room[roomId].player2.lastAction = action;
     }
   }
 
   // Check actions, if player state is equal and on state 4
   if (
-    game.player1.state === STATE.ACTION &&
-    game.player2.state === STATE.ACTION
+    room[roomId].player1.state === STATE.ACTION &&
+    room[roomId].player2.state === STATE.ACTION
   ) {
-    if (game.player1.lastAction === ACTION.CHARGE) {
+    if (room[roomId].player1.lastAction === ACTION.CHARGE) {
       console.log('player1 charge')
-      game.player1.charge += 1;
+      room[roomId].player1.charge += 1;
     }
-    if (game.player2.lastAction === ACTION.CHARGE) {
+    if (room[roomId].player2.lastAction === ACTION.CHARGE) {
       console.log('player2 charge')
-      game.player2.charge += 1;
+      room[roomId].player2.charge += 1;
     }
 
-    if (game.player1.lastAction === ACTION.ATTACK && game.player1.charge >= 3) {
+    if (room[roomId].player1.lastAction === ACTION.ATTACK && room[roomId].player1.charge >= 3) {
       console.log('player1 attack')
-      game.player1.charge -= 3;
-      if (game.player2.lastAction === ACTION.CHARGE) {
-        game.player2.hp -= 1;
+      room[roomId].player1.charge -= 3;
+      if (room[roomId].player2.lastAction === ACTION.CHARGE) {
+        room[roomId].player2.hp -= 1;
       }
     }
-    if (game.player2.lastAction === ACTION.ATTACK && game.player2.charge >= 3) {
+    if (room[roomId].player2.lastAction === ACTION.ATTACK && room[roomId].player2.charge >= 3) {
       console.log('player2 attack')
-      game.player2.charge -= 3;
-      if (game.player1.lastAction === ACTION.CHARGE) {
-        game.player1.hp -= 1;
+      room[roomId].player2.charge -= 3;
+      if (room[roomId].player1.lastAction === ACTION.CHARGE) {
+        room[roomId].player1.hp -= 1;
       }
     }
 
-    if (game.player1.lastAction === ACTION.DEFEND && game.player1.charge >= 1) {
+    if (room[roomId].player1.lastAction === ACTION.DEFEND && room[roomId].player1.charge >= 1) {
       console.log('player1 defend')
-      game.player1.charge -= 1;
+      room[roomId].player1.charge -= 1;
     }
-    if (game.player2.lastAction === ACTION.DEFEND && game.player2.charge >= 1) {
+    if (room[roomId].player2.lastAction === ACTION.DEFEND && room[roomId].player2.charge >= 1) {
       console.log('player2 defend')
-      game.player2.charge -= 1;
+      room[roomId].player2.charge -= 1;
     }
 
     // Revert state back to idle
-    game.player1.state = STATE.IDLE;
-    game.player2.state = STATE.IDLE;
+    room[roomId].player1.state = STATE.IDLE;
+    room[roomId].player2.state = STATE.IDLE;
   }
 
+  console.log(`Room: ${roomId}`)
   console.log(
-    `${game.player1.id}: state: ${printState(game.player1.state)} HP: ${
-      game.player1.hp
-    } Charge: ${game.player1.charge} lastAction ${game.player1.lastAction}`,
+    `${room[roomId].player1.id}: state: ${printState(room[roomId].player1.state)} HP: ${
+      room[roomId].player1.hp
+    } Charge: ${room[roomId].player1.charge} lastAction ${room[roomId].player1.lastAction}`,
   );
   console.log(
-    `${game.player2.id}: state: ${printState(game.player2.state)} HP: ${
-      game.player2.hp
-    } Charge: ${game.player2.charge} lastAction ${game.player2.lastAction}`,
+    `${room[roomId].player2.id}: state: ${printState(room[roomId].player2.state)} HP: ${
+      room[roomId].player2.hp
+    } Charge: ${room[roomId].player2.charge} lastAction ${room[roomId].player2.lastAction}`,
   );
+
+  io.emit('game_state', room)
 
   // TODO:Check Player's HP and update game state
   if (game.player1.hp <= 0) console.log('Player2 win');
@@ -166,16 +173,24 @@ const processAction = (id, action) => {
 };
 
 io.on('connection', socket => {
-  console.log('Player connected');
-  if (!game.player1.id) {
-    game.player1.id = socket.id;
-  } else {
-    game.player2.id = socket.id;
-  }
+  console.log('Player connected to server');
 
-  socket.on('action', action => {
-    console.log(`${socket.id}: ${printAction(action)}`);
-    processAction(socket.id, action);
+  socket.on('join_room', roomId => {
+    console.log(`${socket.id} joins ${roomId}`)
+    if(!room[roomId]) {
+      room[roomId] = Object.assign({}, game)
+      room[roomId].player1.id = socket.id
+    } else {
+      room[roomId].player2.id = socket.id
+
+      // Broadcast game started
+      io.emit('game_start', roomId)
+    }
+  })
+
+  socket.on('action', data => {
+    console.log(`Room: ${data.roomId} ${socket.id}: ${printAction(data.action)}`);
+    processAction(data.roomId, socket.id, data.action);
   });
 });
 
