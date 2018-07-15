@@ -180,11 +180,12 @@ io.on('connection', socket => {
     if(!room[roomId]) {
       room[roomId] = Object.assign({}, game)
       room[roomId].player1.id = socket.id
+      io.emit('player_join', {roomId: roomId, playerNumber: 1})
     } else {
       room[roomId].player2.id = socket.id
-
+      io.emit('player_join', {roomId: roomId, playerNumber: 2})
       // Broadcast game started
-      io.emit('game_start', roomId)
+      io.emit('game_start', {roomId: roomId})
     }
   })
 
