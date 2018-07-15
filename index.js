@@ -271,14 +271,14 @@ io.on('connection', socket => {
         player1: {
           id: null,
           state: STATE.IDLE,
-          hp: 1,
+          hp: 3,
           charge: 0,
           lastAction: -1,
         },
         player2: {
           id: null,
           state: STATE.IDLE,
-          hp: 1,
+          hp: 3,
           charge: 0,
           lastAction: -1,
         },
