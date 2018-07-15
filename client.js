@@ -47,7 +47,7 @@ const socket = io('http://192.168.180.228:5000');
 socket.on('connect', () => {
   console.log(`connect ${socket.id}`);
 
-  socket.emit('join_room', 5555);
+  socket.emit('join', 5555);
 });
 
 socket.on('game_start', ({roomId}) => {

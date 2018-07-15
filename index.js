@@ -101,23 +101,6 @@ const ACTION = {
 
 let room = {};
 
-let game = {
-  player1: {
-    id: null,
-    state: STATE.IDLE,
-    hp: 3,
-    charge: 0,
-    lastAction: -1,
-  },
-  player2: {
-    id: null,
-    state: STATE.IDLE,
-    hp: 3,
-    charge: 0,
-    lastAction: -1,
-  },
-};
-
 const emptyPlayerObject = {
   state: STATE.IDLE,
   hp: 3,
@@ -165,7 +148,7 @@ const printAction = action => {
 
 const processAction = (roomId, id, action) => {
   if (!room[roomId]) {
-    return
+    return;
   }
 
   // Process player's state
@@ -267,12 +250,11 @@ const processAction = (roomId, id, action) => {
   io.emit('game_state', room);
 
   // TODO:Check Player's HP and update game state
-  if (game.player1.hp <= 0) {
+  if (room[roomId].player1.hp <= 0) {
     console.log('Player2 win');
     io.emit('game_end', {roomId: roomId, playerWin: 2});
     delete room[roomId];
-  }
-  if (game.player2.hp <= 0) {
+  } else if (room[roomId].player2.hp <= 0) {
     console.log('Player1 win');
     io.emit('game_end', {roomId: roomId, playerWin: 1});
     delete room[roomId];
@@ -285,7 +267,22 @@ io.on('connection', socket => {
   socket.on('join', roomId => {
     console.log(`${socket.id} joins ${roomId}`);
     if (!room[roomId]) {
-      room[roomId] = Object.assign({}, game);
+      room[roomId] = {
+        player1: {
+          id: null,
+          state: STATE.IDLE,
+          hp: 1,
+          charge: 0,
+          lastAction: -1,
+        },
+        player2: {
+          id: null,
+          state: STATE.IDLE,
+          hp: 1,
+          charge: 0,
+          lastAction: -1,
+        },
+      };
       room[roomId].player1.id = socket.id;
       io.emit('player_join', {roomId: roomId, playerNumber: 1});
     } else {
@@ -314,7 +311,7 @@ io.on('connection', socket => {
         const max = argMax(data);
         if (data[max] >= 0.5) {
           const time = Date.now() - start;
-          const ms = applyFilter(socket.id, max)
+          const ms = applyFilter(socket.id, max);
           if (ms && max >= ACTION.TOB && max <= ACTION.DEFEND) {
             processAction(roomId, socket.id, max);
           }
