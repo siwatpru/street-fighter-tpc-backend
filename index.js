@@ -315,7 +315,7 @@ io.on('connection', socket => {
         if (data[max] >= 0.5) {
           const time = Date.now() - start;
           const ms = applyFilter(socket.id, max)
-          if (ms) {
+          if (ms && max >= ACTION.TOB && max <= ACTION.DEFEND) {
             processAction(roomId, socket.id, max);
           }
         }
